@@ -1,13 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, X, MoreVertical, Database } from "lucide-react";
 import { fetchTickers24h } from "@/lib/binance/rest";
 import { getBinanceWS } from "@/lib/binance/ws";
 import { useChartStore } from "@/lib/store/chart-store";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatPrice, formatPct } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { chartDB } from "@/lib/database/db";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 interface Row {
   symbol: string;
@@ -23,6 +32,7 @@ export function Watchlist() {
   const openSymbolDialog = useChartStore((s) => s.setSymbolDialogOpen);
   const [rows, setRows] = useState<Record<string, Row>>({});
   const [flash, setFlash] = useState<Record<string, "up" | "down" | null>>({});
+  const [stats, setStats] = useState<Record<string, Record<string, number>>>({});
 
   useEffect(() => {
     if (watchlist.length === 0) return;
@@ -80,6 +90,15 @@ export function Watchlist() {
       unsub();
     };
   }, [watchlist]);
+
+  const loadStats = async (s: string) => {
+    try {
+      const sData = await chartDB.getStats(s);
+      setStats(prev => ({ ...prev, [s]: sData }));
+    } catch (e) {
+      console.error("Failed to load stats for", s, e);
+    }
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -146,16 +165,50 @@ export function Watchlist() {
                   >
                     {row ? formatPct(row.pct) : "—"}
                   </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeFromWatchlist(s);
-                    }}
-                    className="invisible rounded p-0.5 text-tv-text-muted hover:bg-tv-bg hover:text-tv-red group-hover:visible"
-                    aria-label={`Quitar ${s} del watchlist`}
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+                  
+                  <div className="flex items-center gap-0.5">
+                    <DropdownMenu onOpenChange={(open) => open && loadStats(s)}>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          onClick={(e) => e.stopPropagation()}
+                          className="invisible rounded p-0.5 text-tv-text-muted hover:bg-tv-bg hover:text-white group-hover:visible"
+                        >
+                          <MoreVertical className="h-3.5 w-3.5" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-48 bg-tv-panel border-tv-border text-tv-text" align="end">
+                        <DropdownMenuLabel className="text-[10px] uppercase text-tv-text-muted flex items-center gap-1.5">
+                          <Database className="w-3 h-3" />
+                          Datos Descargados
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {stats[s] && Object.keys(stats[s]).length > 0 ? (
+                          Object.entries(stats[s]).map(([interval, count]) => (
+                            <DropdownMenuItem key={interval} className="text-[11px] flex justify-between">
+                              <span className="font-medium">{interval}</span>
+                              <span className="text-tv-text-muted">{count.toLocaleString()} velas</span>
+                            </DropdownMenuItem>
+                          ))
+                        ) : (
+                          <div className="p-2 text-[10px] text-tv-text-muted italic">
+                            Sin datos descargados
+                          </div>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          variant="destructive"
+                          className="text-[11px]"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeFromWatchlist(s);
+                          }}
+                        >
+                          <X className="mr-2 h-3 w-3" />
+                          Quitar de la lista
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </div>
             );

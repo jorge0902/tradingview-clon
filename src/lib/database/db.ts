@@ -81,6 +81,25 @@ class ChartDB {
     }
     await tx.done;
   }
+
+  async getStats(symbol: string): Promise<Record<string, number>> {
+    const db = await this.getDB();
+    // We search for keys starting with symbol:
+    const range = IDBKeyRange.bound(`${symbol}:`, `${symbol}:\uffff`);
+    const stats: Record<string, number> = {};
+    const tx = db.transaction(STORE_NAME, "readonly");
+    let cursor = await tx.store.openCursor(range);
+    
+    while (cursor) {
+      const parts = (cursor.primaryKey as string).split(":");
+      if (parts.length >= 2) {
+        const interval = parts[1];
+        stats[interval] = (stats[interval] || 0) + 1;
+      }
+      cursor = await cursor.continue();
+    }
+    return stats;
+  }
 }
 
 export const chartDB = new ChartDB();
