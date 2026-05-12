@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Timeframe } from "@/lib/binance/types";
 import type { Trade } from "@/lib/backtest/backtest-engine";
+import type { StrategyInput, StrategyInputValues } from "@/lib/backtest/strategy-inputs";
 
 export type IndicatorKey =
   | "ema20"
@@ -82,6 +83,13 @@ interface ChartState {
   settingsTarget: IndicatorKey | null;
   backtestTrades: Trade[];
   showLegend: boolean;
+  
+  // Strategy Parameters
+  strategyInputs: StrategyInput[];
+  strategyValues: StrategyInputValues;
+  strategyName: string;
+  strategySettingsOpen: boolean;
+  strategyVisible: boolean;
 
   // Actions
   setSymbol: (s: string) => void;
@@ -99,6 +107,14 @@ interface ChartState {
   setSettingsTarget: (k: IndicatorKey | null) => void;
   setBacktestTrades: (trades: Trade[]) => void;
   toggleLegend: () => void;
+
+  // Strategy Actions
+  setStrategyInputs: (inputs: StrategyInput[]) => void;
+  setStrategyValue: (name: string, value: any) => void;
+  setStrategySettingsOpen: (open: boolean) => void;
+  setStrategyVisible: (visible: boolean) => void;
+  setStrategyName: (name: string) => void;
+  resetStrategyValues: () => void;
 }
 
 export const useChartStore = create<ChartState>()(
@@ -130,6 +146,11 @@ export const useChartStore = create<ChartState>()(
       settingsTarget: null,
       backtestTrades: [],
       showLegend: true,
+      strategyInputs: [],
+      strategyValues: {},
+      strategyName: "Estrategia",
+      strategySettingsOpen: false,
+      strategyVisible: true,
 
       setSymbol: (symbol) => set({ symbol }),
       setTimeframe: (timeframe) => set({ timeframe }),
@@ -185,6 +206,32 @@ export const useChartStore = create<ChartState>()(
       setSettingsTarget: (settingsTarget) => set({ settingsTarget }),
       setBacktestTrades: (backtestTrades) => set({ backtestTrades }),
       toggleLegend: () => set((s) => ({ showLegend: !s.showLegend })),
+
+      setStrategyInputs: (strategyInputs) => {
+        set((s) => {
+          // Initialize values with defaults if not present
+          const newValues = { ...s.strategyValues };
+          strategyInputs.forEach(input => {
+            if (newValues[input.name] === undefined) {
+              newValues[input.name] = input.default;
+            }
+          });
+          return { strategyInputs, strategyValues: newValues };
+        });
+      },
+      setStrategyValue: (name, value) => set((s) => ({
+        strategyValues: { ...s.strategyValues, [name]: value }
+      })),
+      setStrategySettingsOpen: (strategySettingsOpen) => set({ strategySettingsOpen }),
+      setStrategyVisible: (strategyVisible) => set({ strategyVisible }),
+      setStrategyName: (strategyName) => set({ strategyName }),
+      resetStrategyValues: () => set((s) => {
+        const resetValues: StrategyInputValues = {};
+        s.strategyInputs.forEach(input => {
+          resetValues[input.name] = input.default;
+        });
+        return { strategyValues: resetValues };
+      }),
     }),
     {
       name: "tv-gratis-chart-state",

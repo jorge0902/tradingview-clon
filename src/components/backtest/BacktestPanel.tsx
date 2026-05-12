@@ -10,14 +10,11 @@ import { BacktestEngine, type BacktestResult, type StrategyContext } from "@/lib
 import { formatPrice, formatPct } from "@/lib/format";
 import { EquityChart } from "./EquityChart";
 import { TradesAnalysis } from "./TradesAnalysis";
+import { parseStrategyInputs, createInputContext } from "@/lib/backtest/strategy-inputs";
 
 const DEFAULT_STRATEGY = `// Estrategia de Cruce de Medias Móviles (SMA)
-// ctx.candle: Vela actual { open, high, low, close, volume }
-// ctx.index: Índice de la vela actual
-// ctx.data: Todo el historial de velas
-// ctx.position: "LONG", "SHORT", o "FLAT"
-
-// Funciones útiles: ctx.buy(), ctx.sell(), ctx.close()
+const fastPeriod = input(10, "SMA Rápida", { min: 2, max: 100 });
+const slowPeriod = input(30, "SMA Lenta", { min: 5, max: 200 });
 
 function sma(data, period, index) {
   if (index < period - 1) return null;
@@ -28,12 +25,12 @@ function sma(data, period, index) {
   return sum / period;
 }
 
-const fastSma = sma(ctx.data, 10, ctx.index);
-const slowSma = sma(ctx.data, 30, ctx.index);
+const fastSma = sma(ctx.data, fastPeriod, ctx.index);
+const slowSma = sma(ctx.data, slowPeriod, ctx.index);
 
 if (fastSma !== null && slowSma !== null) {
-  const prevFast = sma(ctx.data, 10, ctx.index - 1);
-  const prevSlow = sma(ctx.data, 30, ctx.index - 1);
+  const prevFast = sma(ctx.data, fastPeriod, ctx.index - 1);
+  const prevSlow = sma(ctx.data, slowPeriod, ctx.index - 1);
   
   const crossover = prevFast <= prevSlow && fastSma > slowSma;
   const crossunder = prevFast >= prevSlow && fastSma < slowSma;
@@ -53,7 +50,14 @@ export function BacktestPanel() {
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<BacktestResult | null>(null);
   
-  const { symbol, timeframe } = useChartStore();
+  const { 
+    symbol, 
+    timeframe, 
+    strategyValues, 
+    setStrategyInputs, 
+    setStrategyName,
+    setBacktestTrades 
+  } = useChartStore();
   const monaco = useMonaco();
 
   // Dark theme for monaco
@@ -71,6 +75,26 @@ export function BacktestPanel() {
     }
   }, [monaco]);
 
+  // Parse inputs whenever code changes
+  useEffect(() => {
+    const inputs = parseStrategyInputs(code);
+    setStrategyInputs(inputs);
+    
+    // Extract strategy name from comments if present (e.g. // Strategy: My Strategy)
+    const nameMatch = code.match(/\/\/\s*Strategy:\s*([^\n]+)/i) || code.match(/\/\/\s*([^\n]+)/);
+    if (nameMatch) {
+      setStrategyName(nameMatch[1].trim());
+    }
+  }, [code, setStrategyInputs, setStrategyName]);
+
+  // Re-run backtest when parameters change
+  useEffect(() => {
+    if (result) {
+      runBacktest();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [strategyValues]);
+
   const runBacktest = async () => {
     setIsRunning(true);
     setActiveTab("results");
@@ -86,17 +110,17 @@ export function BacktestPanel() {
       }
 
       // 2. Compile strategy
-      // We wrap the user code in a function body
-      const strategyFn = new Function("ctx", code) as (ctx: StrategyContext) => void;
+      const input = createInputContext(strategyValues);
+      const strategyFn = new Function("ctx", "input", code) as (ctx: StrategyContext, input: any) => void;
 
       // 3. Run engine
       const engine = new BacktestEngine(10000);
-      const res = engine.run(candles, strategyFn);
+      const res = engine.run(candles, (ctx) => strategyFn(ctx, input));
       
       setResult(res);
       
       // Update store with trades to render markers on chart
-      useChartStore.getState().setBacktestTrades(res.trades);
+      setBacktestTrades(res.trades);
       
     } catch (err) {
       console.error("Backtest error:", err);
