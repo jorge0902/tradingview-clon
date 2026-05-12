@@ -6,8 +6,13 @@ export async function fetchKlines(
   symbol: string,
   interval: Timeframe,
   limit = 1000,
+  startTime?: number,
+  endTime?: number,
 ): Promise<Candle[]> {
-  const url = `${BASE}/klines?symbol=${symbol.toUpperCase()}&interval=${interval}&limit=${limit}`;
+  let url = `${BASE}/klines?symbol=${symbol.toUpperCase()}&interval=${interval}&limit=${limit}`;
+  if (startTime) url += `&startTime=${startTime}`;
+  if (endTime) url += `&endTime=${endTime}`;
+
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`klines ${res.status}`);
   const data = (await res.json()) as unknown[][];
@@ -20,6 +25,45 @@ export async function fetchKlines(
     volume: parseFloat(k[5] as string),
     isFinal: true,
   }));
+}
+
+/**
+ * Fetches a large range of historical data by paginating through multiple requests.
+ */
+export async function fetchHistoricalRange(
+  symbol: string,
+  interval: Timeframe,
+  startUnix: number,
+  endUnix: number,
+  onProgress?: (progress: number) => void
+): Promise<Candle[]> {
+  const allCandles: Candle[] = [];
+  let currentStart = startUnix * 1000;
+  const targetEnd = endUnix * 1000;
+  const totalDuration = targetEnd - currentStart;
+
+  while (currentStart < targetEnd) {
+    const klines = await fetchKlines(symbol, interval, 1000, currentStart, targetEnd);
+    if (klines.length === 0) break;
+
+    allCandles.push(...klines);
+    
+    // Update progress
+    if (onProgress) {
+      const progress = Math.min(100, Math.floor(((klines[klines.length - 1].time * 1000 - startUnix * 1000) / totalDuration) * 100));
+      onProgress(progress);
+    }
+
+    // Next start is 1ms after the last candle
+    currentStart = (klines[klines.length - 1].time + 1) * 1000;
+
+    // Small delay to respect rate limits
+    if (currentStart < targetEnd) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+
+  return allCandles;
 }
 
 export async function fetchTicker24h(symbol: string): Promise<Ticker24h> {

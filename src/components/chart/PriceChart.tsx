@@ -11,6 +11,8 @@ import {
   type ISeriesApi,
   type IPriceLine,
   type UTCTimestamp,
+  // @ts-expect-error - Lightweight Charts v5 marker plugin
+  createSeriesMarkers,
 } from "lightweight-charts";
 import { fetchKlines } from "@/lib/binance/rest";
 import { getBinanceWS } from "@/lib/binance/ws";
@@ -24,6 +26,7 @@ import {
 import { formatPrice, formatVolume } from "@/lib/format";
 import { IndicatorPill } from "./IndicatorPill";
 import { MeasureOverlay } from "./MeasureOverlay";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface MeasurePoint {
   time: number;
@@ -107,16 +110,21 @@ export function PriceChart({ symbol, timeframe }: Props) {
   const macdHistRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const candlesRef = useRef<Candle[]>([]);
   const priceLinesMapRef = useRef<Map<string, IPriceLine>>(new Map());
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const markersPluginRef = useRef<any>(null);
 
   const indicators = useChartStore((s) => s.indicators);
   const hidden = useChartStore((s) => s.hidden);
   const config = useChartStore((s) => s.config);
   const tool = useChartStore((s) => s.tool);
   const priceLines = useChartStore((s) => s.priceLines);
+  const backtestTrades = useChartStore((s) => s.backtestTrades);
   const addPriceLine = useChartStore((s) => s.addPriceLine);
   const removeIndicator = useChartStore((s) => s.removeIndicator);
   const toggleHidden = useChartStore((s) => s.toggleHidden);
   const setSettingsTarget = useChartStore((s) => s.setSettingsTarget);
+  const showLegend = useChartStore((s) => s.showLegend);
+  const toggleLegend = useChartStore((s) => s.toggleLegend);
 
   // Refs to avoid recreating subscribeClick on every tool change
   const toolRef = useRef(tool);
@@ -527,6 +535,52 @@ export function PriceChart({ symbol, timeframe }: Props) {
     }
   }, [priceLines, symbol]);
 
+  // Render backtest trades as markers on the candle series
+  useEffect(() => {
+    if (!candleSeriesRef.current) return;
+    
+    // Convert trades to markers
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const markers: any[] = [];
+    
+    // Sort trades by time to ensure markers are in chronological order (required by lightweight-charts)
+    const sortedTrades = [...backtestTrades].sort((a, b) => a.entryTime - b.entryTime);
+    
+    sortedTrades.forEach((t) => {
+      // Entry marker
+      markers.push({
+        time: t.entryTime as UTCTimestamp,
+        position: t.side === "LONG" ? "belowBar" : "aboveBar",
+        color: t.side === "LONG" ? TV_COLORS.green : TV_COLORS.red,
+        shape: t.side === "LONG" ? "arrowUp" : "arrowDown",
+        text: t.side === "LONG" ? "Buy" : "Sell",
+        size: 2,
+      });
+      
+      // Exit marker (if closed)
+      if (t.exitTime && t.exitPrice) {
+        markers.push({
+          time: t.exitTime as UTCTimestamp,
+          position: t.side === "LONG" ? "aboveBar" : "belowBar",
+          color: (t.pnl || 0) >= 0 ? TV_COLORS.green : TV_COLORS.red,
+          shape: t.side === "LONG" ? "arrowDown" : "arrowUp",
+          text: `Close ${(t.pnl || 0) >= 0 ? '+' : ''}${(t.pnl || 0).toFixed(0)}`,
+          size: 1.5,
+        });
+      }
+    });
+    
+    // Markers must be sorted by time
+    markers.sort((a, b) => a.time - b.time);
+    
+    if (markersPluginRef.current) {
+      markersPluginRef.current.setMarkers(markers);
+    } else {
+      markersPluginRef.current = createSeriesMarkers(candleSeriesRef.current, markers);
+      candleSeriesRef.current.attachPrimitive(markersPluginRef.current);
+    }
+  }, [backtestTrades]);
+
   // Cursor style when drawing tools are active + reset measure on tool change
   useEffect(() => {
     if (containerRef.current) {
@@ -790,6 +844,16 @@ export function PriceChart({ symbol, timeframe }: Props) {
         style={{ top: (paneOffsets[0]?.top ?? 0) + 12, left: 12 }}
         className="pointer-events-none absolute z-10 flex flex-col gap-1 text-xs tabular-nums"
       >
+        <button 
+          onClick={toggleLegend}
+          className="pointer-events-auto absolute -top-2 -left-2 z-20 p-1 hover:bg-white/10 rounded text-tv-text-muted hover:text-white transition"
+          title={showLegend ? "Ocultar leyenda" : "Mostrar leyenda"}
+        >
+          {showLegend ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        </button>
+        
+        {showLegend && (
+          <>
         {/* Row 1: symbol info + OHLC stats inline on hover (fixed height, never wraps) */}
         <div className="flex h-5 flex-nowrap items-center gap-x-3 overflow-hidden whitespace-nowrap">
           <div className="flex shrink-0 items-center gap-2 text-[13px] font-semibold">
@@ -888,7 +952,9 @@ export function PriceChart({ symbol, timeframe }: Props) {
             />
           )}
         </div>
-      </div>
+      </>
+    )}
+  </div>
 
       {/* RSI pane label */}
       {indicators.rsi && paneOffsets[rsiPaneIdx] && (

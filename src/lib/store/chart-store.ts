@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Timeframe } from "@/lib/binance/types";
+import type { Trade } from "@/lib/backtest/backtest-engine";
 
 export type IndicatorKey =
   | "ema20"
@@ -79,6 +80,8 @@ interface ChartState {
   symbolDialogOpen: boolean;
   /** Which indicator's settings dialog is open (null = closed) */
   settingsTarget: IndicatorKey | null;
+  backtestTrades: Trade[];
+  showLegend: boolean;
 
   // Actions
   setSymbol: (s: string) => void;
@@ -94,6 +97,8 @@ interface ChartState {
   clearPriceLines: (symbol?: string) => void;
   setSymbolDialogOpen: (v: boolean) => void;
   setSettingsTarget: (k: IndicatorKey | null) => void;
+  setBacktestTrades: (trades: Trade[]) => void;
+  toggleLegend: () => void;
 }
 
 export const useChartStore = create<ChartState>()(
@@ -123,6 +128,8 @@ export const useChartStore = create<ChartState>()(
       priceLines: [],
       symbolDialogOpen: false,
       settingsTarget: null,
+      backtestTrades: [],
+      showLegend: true,
 
       setSymbol: (symbol) => set({ symbol }),
       setTimeframe: (timeframe) => set({ timeframe }),
@@ -176,6 +183,8 @@ export const useChartStore = create<ChartState>()(
         })),
       setSymbolDialogOpen: (symbolDialogOpen) => set({ symbolDialogOpen }),
       setSettingsTarget: (settingsTarget) => set({ settingsTarget }),
+      setBacktestTrades: (backtestTrades) => set({ backtestTrades }),
+      toggleLegend: () => set((s) => ({ showLegend: !s.showLegend })),
     }),
     {
       name: "tv-gratis-chart-state",
