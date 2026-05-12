@@ -169,12 +169,14 @@ export function Watchlist() {
                   <div className="flex items-center gap-0.5">
                     <DropdownMenu onOpenChange={(open) => open && loadStats(s)}>
                       <DropdownMenuTrigger asChild>
-                        <button
+                        <span
+                          role="button"
+                          tabIndex={0}
                           onClick={(e) => e.stopPropagation()}
-                          className="invisible rounded p-0.5 text-tv-text-muted hover:bg-tv-bg hover:text-white group-hover:visible"
+                          className="invisible rounded p-0.5 text-tv-text-muted hover:bg-tv-panel-hover hover:text-white group-hover:visible cursor-pointer flex items-center justify-center"
                         >
                           <MoreVertical className="h-3.5 w-3.5" />
-                        </button>
+                        </span>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent className="w-48 bg-tv-panel border-tv-border text-tv-text" align="end">
                         <DropdownMenuLabel className="text-[10px] uppercase text-tv-text-muted flex items-center gap-1.5">
