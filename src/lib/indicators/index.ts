@@ -115,3 +115,65 @@ export function macd(
   void slowStartTime;
   return out;
 }
+
+export interface StochPoint {
+  time: number;
+  k: number;
+  d: number;
+}
+
+/**
+ * Stochastic Oscillator
+ */
+export function stochastic(
+  candles: Candle[],
+  kPeriod = 14,
+  dPeriod = 3,
+  smooth = 3,
+): StochPoint[] {
+  if (candles.length < kPeriod + smooth + dPeriod) return [];
+
+  const rawK: IndicatorPoint[] = [];
+  for (let i = kPeriod - 1; i < candles.length; i++) {
+    const slice = candles.slice(i - kPeriod + 1, i + 1);
+    const low = Math.min(...slice.map((c) => c.low));
+    const high = Math.max(...slice.map((c) => c.high));
+    const k = high === low ? 100 : (100 * (candles[i].close - low)) / (high - low);
+    rawK.push({ time: candles[i].time, value: k });
+  }
+
+  let smoothedK: IndicatorPoint[] = [];
+  if (smooth > 1) {
+    const rawKAsCandles: Candle[] = rawK.map((p) => ({
+      time: p.time,
+      open: p.value,
+      high: p.value,
+      low: p.value,
+      close: p.value,
+      volume: 0,
+    }));
+    smoothedK = sma(rawKAsCandles, smooth);
+  } else {
+    smoothedK = rawK;
+  }
+
+  const smoothedKAsCandles: Candle[] = smoothedK.map((p) => ({
+    time: p.time,
+    open: p.value,
+    high: p.value,
+    low: p.value,
+    close: p.value,
+    volume: 0,
+  }));
+  const dLine = sma(smoothedKAsCandles, dPeriod);
+
+  const dMap = new Map(dLine.map((p) => [p.time, p.value]));
+  const out: StochPoint[] = [];
+  for (const p of smoothedK) {
+    const dValue = dMap.get(p.time);
+    if (dValue !== undefined) {
+      out.push({ time: p.time, k: p.value, d: dValue });
+    }
+  }
+  return out;
+}

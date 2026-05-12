@@ -21,10 +21,12 @@ export default function HomePage() {
       <div className="flex min-h-0 flex-1">
         <LeftSidebar />
         <main className="relative flex min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 relative flex flex-col">
+          <div className="min-h-0 flex-1 flex flex-col relative">
             <StrategyToolbar />
-            <div className="flex-1 relative">
-              <PriceChart symbol={symbol} timeframe={timeframe} />
+            <div className="flex-1 flex flex-col min-h-0">
+              <div className="flex-1 relative min-h-0">
+                <PriceChart symbol={symbol} timeframe={timeframe} />
+              </div>
               <BacktestPanel />
             </div>
           </div>

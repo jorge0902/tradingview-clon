@@ -22,6 +22,9 @@ interface Entry {
     macdFast: number;
     macdSlow: number;
     macdSignal: number;
+    stochK: number;
+    stochD: number;
+    stochSmooth: number;
   }) => string;
   group: string;
 }
@@ -36,6 +39,11 @@ const ENTRIES: Entry[] = [
     key: "macd",
     group: "Osciladores",
     label: (c) => `MACD (${c.macdFast}, ${c.macdSlow}, ${c.macdSignal})`,
+  },
+  {
+    key: "stoch",
+    group: "Osciladores",
+    label: (c) => `Stochastic (${c.stochK}, ${c.stochD}, ${c.stochSmooth})`,
   },
 ];
 

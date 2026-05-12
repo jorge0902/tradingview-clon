@@ -21,6 +21,7 @@ const TITLES: Record<IndicatorKey, string> = {
   ema200: "EMA — Slot 3",
   rsi: "RSI",
   macd: "MACD",
+  stoch: "Estocástico",
   volume: "Volumen",
 };
 
@@ -81,6 +82,9 @@ function SettingsForm({ target, config, onSave, onReset }: FormProps) {
     macdFast: config.macdFast,
     macdSlow: config.macdSlow,
     macdSignal: config.macdSignal,
+    stochK: config.stochK,
+    stochD: config.stochD,
+    stochSmooth: config.stochSmooth,
   });
 
   useEffect(() => {
@@ -92,6 +96,9 @@ function SettingsForm({ target, config, onSave, onReset }: FormProps) {
       macdFast: config.macdFast,
       macdSlow: config.macdSlow,
       macdSignal: config.macdSignal,
+      stochK: config.stochK,
+      stochD: config.stochD,
+      stochSmooth: config.stochSmooth,
     });
   }, [config, target]);
 
@@ -105,6 +112,12 @@ function SettingsForm({ target, config, onSave, onReset }: FormProps) {
         macdFast: clamp(draft.macdFast, 2, 100),
         macdSlow: clamp(draft.macdSlow, 2, 200),
         macdSignal: clamp(draft.macdSignal, 2, 100),
+      });
+    else if (target === "stoch")
+      onSave({
+        stochK: clamp(draft.stochK, 2, 100),
+        stochD: clamp(draft.stochD, 2, 100),
+        stochSmooth: clamp(draft.stochSmooth, 1, 100),
       });
     else if (target === "volume") onSave({});
   }
@@ -141,6 +154,25 @@ function SettingsForm({ target, config, onSave, onReset }: FormProps) {
             label="Señal"
             value={draft.macdSignal}
             onChange={(n) => setDraft((d) => ({ ...d, macdSignal: n }))}
+          />
+        </div>
+      )}
+      {target === "stoch" && (
+        <div className="grid grid-cols-3 gap-2">
+          <Field
+            label="K"
+            value={draft.stochK}
+            onChange={(n) => setDraft((d) => ({ ...d, stochK: n }))}
+          />
+          <Field
+            label="D"
+            value={draft.stochD}
+            onChange={(n) => setDraft((d) => ({ ...d, stochD: n }))}
+          />
+          <Field
+            label="Suave"
+            value={draft.stochSmooth}
+            onChange={(n) => setDraft((d) => ({ ...d, stochSmooth: n }))}
           />
         </div>
       )}

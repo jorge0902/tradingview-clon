@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 
 interface Row {
@@ -170,34 +171,35 @@ export function Watchlist() {
                     <DropdownMenu onOpenChange={(open) => open && loadStats(s)}>
                       <DropdownMenuTrigger
                         render={
-                          <span
-                            role="button"
-                            tabIndex={0}
+                          <button
+                            type="button"
                             onClick={(e) => e.stopPropagation()}
-                            className="invisible rounded p-0.5 text-tv-text-muted hover:bg-tv-panel-hover hover:text-white group-hover:visible cursor-pointer flex items-center justify-center"
+                            className="invisible rounded p-0.5 text-tv-text-muted hover:bg-tv-panel-hover hover:text-white group-hover:visible cursor-pointer flex items-center justify-center bg-transparent border-none outline-none"
                           >
                             <MoreVertical className="h-3.5 w-3.5" />
-                          </span>
+                          </button>
                         }
                       />
                       <DropdownMenuContent className="w-48 bg-tv-panel border-tv-border text-tv-text" align="end">
-                        <DropdownMenuLabel className="text-[10px] uppercase text-tv-text-muted flex items-center gap-1.5">
-                          <Database className="w-3 h-3" />
-                          Datos Descargados
-                        </DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {stats[s] && Object.keys(stats[s]).length > 0 ? (
-                          Object.entries(stats[s]).map(([interval, count]) => (
-                            <DropdownMenuItem key={interval} className="text-[11px] flex justify-between">
-                              <span className="font-medium">{interval}</span>
-                              <span className="text-tv-text-muted">{count.toLocaleString()} velas</span>
-                            </DropdownMenuItem>
-                          ))
-                        ) : (
-                          <div className="p-2 text-[10px] text-tv-text-muted italic">
-                            Sin datos descargados
-                          </div>
-                        )}
+                        <DropdownMenuGroup>
+                          <DropdownMenuLabel className="text-[10px] uppercase text-tv-text-muted flex items-center gap-1.5">
+                            <Database className="w-3 h-3" />
+                            Datos Descargados
+                          </DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {stats[s] && Object.keys(stats[s]).length > 0 ? (
+                            Object.entries(stats[s]).map(([interval, count]) => (
+                              <DropdownMenuItem key={interval} className="text-[11px] flex justify-between">
+                                <span className="font-medium">{interval}</span>
+                                <span className="text-tv-text-muted">{count.toLocaleString()} velas</span>
+                              </DropdownMenuItem>
+                            ))
+                          ) : (
+                            <div className="p-2 text-[10px] text-tv-text-muted italic">
+                              Sin datos descargados
+                            </div>
+                          )}
+                        </DropdownMenuGroup>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
                           variant="destructive"

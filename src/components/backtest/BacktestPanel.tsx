@@ -131,7 +131,7 @@ export function BacktestPanel() {
   };
 
   return (
-    <div className={`absolute bottom-0 left-0 right-0 z-50 border-t border-tv-border bg-tv-panel transition-all duration-300 flex flex-col ${isOpen ? "h-80" : "h-10"}`}>
+    <div className={`relative z-10 border-t border-tv-border bg-tv-panel transition-all duration-300 flex flex-col shrink-0 ${isOpen ? "h-80" : "h-10"}`}>
       {/* Panel Header / Tabs */}
       <div className="flex h-10 items-center justify-between border-b border-tv-border px-4 select-none shrink-0">
         <div className="flex gap-4 h-full">

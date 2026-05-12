@@ -67,6 +67,20 @@ class ChartDB {
     return candles.sort((a, b) => a.time - b.time);
   }
 
+  async getAllCandles(symbol: string, interval: Timeframe): Promise<Candle[]> {
+    const db = await this.getDB();
+    const prefix = `${symbol}:${interval}:`;
+    const range = IDBKeyRange.bound(prefix, prefix + "\uffff");
+    const candles: Candle[] = [];
+    const tx = db.transaction(STORE_NAME, "readonly");
+    let cursor = await tx.store.openCursor(range);
+    while (cursor) {
+      candles.push(cursor.value);
+      cursor = await cursor.continue();
+    }
+    return candles.sort((a, b) => a.time - b.time);
+  }
+
   async clearData(symbol: string, interval: Timeframe) {
     const db = await this.getDB();
     const range = IDBKeyRange.bound(
