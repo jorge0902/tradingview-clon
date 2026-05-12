@@ -56,7 +56,7 @@ export function BacktestManager() {
       </div>
 
       <div className="text-xs text-tv-text-muted">
-        Descarga datos históricos de Binance para realizar backtesting de varios años.
+        Descarga datos históricos de Binance para <span className="text-blue-400 font-medium">{symbol}</span> para realizar backtesting de varios años.
       </div>
 
       {status === "idle" && (
@@ -114,7 +114,7 @@ export function BacktestManager() {
       {status === "downloading" && (
         <div className="space-y-2">
           <div className="flex justify-between text-[10px] text-tv-text-muted uppercase">
-            <span>Descargando...</span>
+            <span>Descargando {symbol}...</span>
             <span>{progress}%</span>
           </div>
           <div className="w-full bg-tv-border h-1.5 rounded-full overflow-hidden">
@@ -125,7 +125,7 @@ export function BacktestManager() {
           </div>
           <div className="flex items-center gap-2 text-[10px] text-blue-400 justify-center">
             <Loader2 className="w-3 h-3 animate-spin" />
-            <span>Obteniendo bloques de Binance</span>
+            <span>Obteniendo {symbol} desde Binance</span>
           </div>
         </div>
       )}
@@ -133,7 +133,7 @@ export function BacktestManager() {
       {status === "saved" && (
         <div className="flex flex-col items-center gap-2 p-2 bg-green-500/10 border border-green-500/20 rounded">
           <CheckCircle2 className="w-6 h-6 text-green-500" />
-          <span className="text-[10px] font-medium text-green-400 uppercase tracking-wider">¡Datos Listos!</span>
+          <span className="text-[10px] font-medium text-green-400 uppercase tracking-wider">¡{symbol} Listo!</span>
           <Button 
             variant="ghost" 
             size="sm" 
